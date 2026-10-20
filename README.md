@@ -1,16 +1,16 @@
 # TDS Pro library
 
-`TDSPRO.lua` is a client-side Luau library for TDS macro recording, playback, inventory management, and match statistics. It returns a factory instead of opening an interface. Your application owns its buttons, controls, notifications, and presentation.
+`TDSPro.lua` is a client-side Luau library for TDS macro recording, playback, inventory management, and match statistics. It returns a factory instead of opening an interface. Your application owns its buttons, controls, notifications, and presentation.
 
 Requiring the module and creating an instance do not start automation. Subscribe to events, call `Start()`, then explicitly start the features your interface offers. The library does not download a UI framework, create a window or HUD, or send the old usage telemetry.
 
 ## Load from GitHub
 
-Upload this repository to GitHub, then replace the URL below with the raw URL for your copy of `TDSPRO.lua`:
+Load the current library directly from the public repository:
 
 ```lua
 local TDSPro = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/main/TDSPRO.lua"
+    "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua"
 ))()
 
 local tds = TDSPro.new({MacroFolder = "TDSProMacros"})
@@ -34,7 +34,7 @@ end
 The short form is:
 
 ```lua
-local TDSPro = loadstring(game:HttpGet("RAW_GITHUB_URL_HERE"))()
+local TDSPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua"))()
 local tds = TDSPro.new()
 tds:Start()
 ```
@@ -42,7 +42,7 @@ tds:Start()
 Keep the full form while developing a UI so download, compilation, and startup errors are visible:
 
 ```lua
-local source = game:HttpGet("RAW_GITHUB_URL_HERE")
+local source = game:HttpGet("https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua")
 local chunk, compileError = loadstring(source)
 assert(chunk, compileError)
 
@@ -67,7 +67,7 @@ The core still depends on Roblox client services and the TDS game objects/remote
 
 Installing the source as a ModuleScript does not grant an ordinary LocalScript these additional capabilities. Unsupported operations report errors; providing a UI does not remove the runtime requirements.
 
-For local development, the same file can be evaluated with `loadstring(readfile("TDSPRO.lua"))()`. It can also be placed in a ModuleScript and required, although executor-only features still need their corresponding APIs.
+For local development, the same file can be evaluated with `loadstring(readfile("TDSPro.lua"))()`. It can also be placed in a ModuleScript and required, although executor-only features still need their corresponding APIs.
 
 ## Quick start
 
@@ -101,8 +101,8 @@ Commands return `true` with optional result data, or `false, errorMessage`. Gett
 Users who do not want to build a UI can load the included interface:
 
 ```lua
-local base = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPOSITORY/main/"
-local TDSPro = loadstring(game:HttpGet(base .. "TDSPRO.lua"))()
+local base = "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/"
+local TDSPro = loadstring(game:HttpGet(base .. "TDSPro.lua"))()
 local DefaultUI = loadstring(game:HttpGet(base .. "default-ui.lua"))()
 
 local tds = TDSPro.new()
@@ -112,7 +112,7 @@ assert(ui, errorMessage)
 
 `DefaultUI.mount` subscribes to the library, calls `Start()`, and returns a controller with `Destroy`, `SetVisible`, and `GetGui` methods. Closing the interface destroys the TDS Pro instance by default. Pass `{DestroyLibraryOnClose = false}` as the second argument if another part of the script owns the library lifecycle.
 
-The default interface and the core library are separate files. Custom UI authors only need `TDSPRO.lua`.
+The default interface and the core library are separate files. Custom UI authors only need `TDSPro.lua`.
 
 ## Public API
 
@@ -213,7 +213,7 @@ Get an initial snapshot from the matching getter when building a view. Events si
 
 ## Bring your own UI
 
-[`examples/custom-ui.lua`](examples/custom-ui.lua) is a small, caller-owned Roblox interface that loads the raw library from GitHub. Replace its placeholder URL with your repository's raw `TDSPRO.lua` URL. Its buttons call the public API, its labels subscribe to events, and closing it destroys the library instance. It does not supply the executor capabilities described above.
+[`examples/custom-ui.lua`](examples/custom-ui.lua) is a small, caller-owned Roblox interface that loads the raw library from GitHub. Its buttons call the public API, its labels subscribe to events, and closing it destroys the library instance. It does not supply the executor capabilities described above.
 
 You can use the same API with an existing UI framework: route a button callback into a command, route notifications and status events into your labels, and call `Destroy()` when the containing screen is removed.
 
