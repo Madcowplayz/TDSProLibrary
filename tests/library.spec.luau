@@ -1,4 +1,4 @@
-local TDSPro = require("../TDSPRO")
+local TDSPro = require("../TDSPro")
 assert(type(TDSPro) == "table" and type(TDSPro.new) == "function", "module must return a factory")
 
 local function copy(value, seen)
