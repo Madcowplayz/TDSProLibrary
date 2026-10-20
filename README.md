@@ -10,7 +10,7 @@ Upload this repository to GitHub, then replace the URL below with the raw URL fo
 
 ```lua
 local TDSPro = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPOSITORY/main/TDSPRO.lua"
+    "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/main/TDSPRO.lua"
 ))()
 
 local tds = TDSPro.new({MacroFolder = "TDSProMacros"})
@@ -72,7 +72,7 @@ For local development, the same file can be evaluated with `loadstring(readfile(
 ## Quick start
 
 ```lua
-local TDSPro = loadstring(game:HttpGet("RAW_GITHUB_URL_HERE"))()
+local TDSPro = loadstring(game:HttpGet("https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua"))()
 local tds = TDSPro.new({MacroFolder = "TDSProMacros"})
 
 local notificationConnection = tds:On("Notification", function(message)
