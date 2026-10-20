@@ -185,6 +185,7 @@ function DefaultUI.mount(tds, options)
                 show(name .. " completed.")
             end
             render()
+            for _, refresh in ipairs(refreshControls) do pcall(refresh) end
         end)
     end
 
@@ -208,16 +209,281 @@ function DefaultUI.mount(tds, options)
         return control
     end
 
+    local function section(text)
+        local control = label(text, 30)
+        control.BackgroundTransparency = 1
+        control.Font = Enum.Font.GothamBold
+        control.TextColor3 = Color3.fromRGB(121, 156, 239)
+        control.TextXAlignment = Enum.TextXAlignment.Left
+        return control
+    end
+
+    local function textInput(placeholder, initial)
+        local control = create("TextBox", {
+            LayoutOrder = nextOrder(),
+            Size = UDim2.new(1, -4, 0, 38),
+            BackgroundColor3 = Color3.fromRGB(35, 42, 58),
+            BorderSizePixel = 0,
+            ClearTextOnFocus = false,
+            Font = Enum.Font.Gotham,
+            PlaceholderText = placeholder,
+            Text = tostring(initial or ""),
+            TextColor3 = Color3.fromRGB(244, 247, 255),
+            PlaceholderColor3 = Color3.fromRGB(136, 146, 170),
+            TextSize = 13,
+            Parent = content,
+        })
+        create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = control})
+        return control
+    end
+
+    local refreshControls = {}
+    local function toggle(text, getter, setter)
+        local control = create("TextButton", {
+            LayoutOrder = nextOrder(),
+            Size = UDim2.new(1, -4, 0, 38),
+            BackgroundColor3 = Color3.fromRGB(35, 42, 58),
+            BorderSizePixel = 0,
+            Font = Enum.Font.GothamSemibold,
+            TextColor3 = Color3.fromRGB(248, 250, 255),
+            TextSize = 13,
+            Parent = content,
+        })
+        create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = control})
+        local function refresh()
+            local enabled = getter() == true
+            control.Text = text .. ": " .. (enabled and "ON" or "OFF")
+            control.BackgroundColor3 = enabled and Color3.fromRGB(55, 137, 96) or Color3.fromRGB(35, 42, 58)
+        end
+        table.insert(refreshControls, refresh)
+        table.insert(connections, control.Activated:Connect(function()
+            run(text, function()
+                local ok, result = setter(not getter())
+                refresh()
+                return ok, result
+            end)
+        end))
+        refresh()
+        return control
+    end
+
+    local function configToggle(text, key)
+        return toggle(text, function()
+            return tds:GetConfig()[key]
+        end, function(value)
+            return tds:Configure({[key] = value})
+        end)
+    end
+
+    local function choice(text, values, getter, setter)
+        local control
+        control = button(text, function()
+            local current = getter()
+            local index = table.find(values, current) or 0
+            local value = values[(index % #values) + 1]
+            local ok, result = setter(value)
+            control.Text = text .. ": " .. tostring(getter())
+            return ok, result
+        end)
+        control.BackgroundColor3 = Color3.fromRGB(35, 42, 58)
+        control.Text = text .. ": " .. tostring(getter())
+        return control
+    end
+
+    section("Macros and Playback")
+
     button("Load Macro", function() return tds:LoadMacro(macroInput.Text) end)
+    local selectedMacro
+    local savedMacros = {}
+    local savedMacroIndex = 0
+    local savedMacroButton
+    button("Refresh Saved Macros", function()
+        local names, errorMessage = tds:ListMacros()
+        savedMacros = names or {}
+        savedMacroIndex = 0
+        selectedMacro = nil
+        savedMacroButton.Text = "Select Saved Macro: " .. (#savedMacros > 0 and "Click to cycle" or "None")
+        return errorMessage == nil, errorMessage
+    end)
+    savedMacroButton = button("Select Saved Macro: None", function()
+        if #savedMacros == 0 then return false, "Refresh the macro list first." end
+        savedMacroIndex = (savedMacroIndex % #savedMacros) + 1
+        selectedMacro = savedMacros[savedMacroIndex]
+        macroInput.Text = selectedMacro
+        savedMacroButton.Text = "Select Saved Macro: " .. selectedMacro
+        return true
+    end)
+    savedMacroButton.BackgroundColor3 = Color3.fromRGB(35, 42, 58)
     button("Start Recording", function() return tds:StartRecording(macroInput.Text) end)
     button("Stop Recording", function() return tds:StopRecording() end)
+    button("Clear Recording", function() return tds:ClearRecording() end)
     button("Save Macro", function() return tds:SaveMacro(macroInput.Text) end)
     button("Play Once", function() return tds:Play() end)
-    button("Start Auto Replay", function() return tds:SetAutoReplay(true) end)
+    toggle("Auto Replay", function() return tds:GetState().AutoReplay end, function(value) return tds:SetAutoReplay(value) end)
     button("Stop Playback", function() return tds:Stop() end)
+    button("Start Matchmaking", function() return tds:StartMatchmaking() end)
+
+    section("Replay Settings")
+    configToggle("VIP Override", "VIPOverride")
+    configToggle("Map Reroll", "MapReroll")
+    configToggle("Loading Stall Recovery", "LoadingStallRecovery")
+    configToggle("Use 2x Time Scale", "TimeScale2x")
+    configToggle("Early Economy Actions", "EarlyEconomyActions")
+    local loadingTimeout = textInput("Loading timeout in seconds", tds:GetConfig().LoadingStallTimeout)
+    button("Apply Loading Timeout", function()
+        return tds:Configure({LoadingStallTimeout = tonumber(loadingTimeout.Text)})
+    end)
+    button("Use Time Scale Ticket Now", function() return tds:UseTimeScaleTicket() end)
+
+    section("Gameplay")
+    configToggle("Anti AFK", "AntiAFK")
+    configToggle("Auto Skip", "AutoSkip")
+    configToggle("Simplify Map Visuals", "SimplifyMapVisuals")
     button("Auto Equip Inventory", function() return tds:AutoEquipInventory() end)
     button("Restore Previous Loadout", function() return tds:RestorePreviousLoadout() end)
     button("Skip Wave", function() return tds:SkipWave() end)
+
+    section("Multiplayer")
+    configToggle("Multiplayer Mode", "Multiplayer")
+    configToggle("Party Host", "IsHost")
+    choice("Player Count", {2, 3, 4}, function() return tds:GetConfig().PlayerCount end, function(value)
+        return tds:Configure({PlayerCount = value})
+    end)
+    local hostDelay = textInput("Host delay in seconds", tds:GetConfig().HostDelay)
+    button("Apply Host Delay", function() return tds:Configure({HostDelay = tonumber(hostDelay.Text)}) end)
+
+    section("Modifiers")
+    configToggle("Enable Modifier Voting", "ModifierVoting")
+    for _, modifierName in ipairs(tds:GetModifiers()) do
+        toggle(modifierName, function()
+            return table.find(tds:GetConfig().Modifiers, modifierName) ~= nil
+        end, function(enabled)
+            local configured = tds:GetConfig().Modifiers
+            local nextModifiers = {}
+            for _, name in ipairs(configured) do
+                if name ~= modifierName then table.insert(nextModifiers, name) end
+            end
+            if enabled then table.insert(nextModifiers, modifierName) end
+            return tds:Configure({Modifiers = nextModifiers})
+        end)
+    end
+    button("Vote Configured Modifiers", function() return tds:VoteModifiers() end)
+
+    section("Timeline")
+    local timelineLabel = label("No timeline loaded.", 140)
+    timelineLabel.TextXAlignment = Enum.TextXAlignment.Left
+    timelineLabel.TextYAlignment = Enum.TextYAlignment.Top
+    local eventIndexInput = textInput("Timeline event index", "1")
+    local eventTimeInput = textInput("New event time in seconds", "0")
+    button("Refresh Timeline", function()
+        local events = tds:GetTimeline()
+        local lines = {}
+        for index = 1, math.min(#events, 8) do
+            local event = events[index]
+            local time = tonumber(event.WaveElapsed or event.WaveTimer or event.Timestamp) or 0
+            table.insert(lines, string.format("%d. %s | Wave %s | %.2fs", index, tostring(event.Action), tostring(event.Wave or "-"), time))
+        end
+        timelineLabel.Text = #lines > 0 and table.concat(lines, "\n") or "No timeline loaded."
+        return true
+    end)
+    button("Set Timeline Event Time", function()
+        return tds:SetEventTime(tonumber(eventIndexInput.Text), tonumber(eventTimeInput.Text))
+    end)
+    local macroJsonInput = textInput("Macro JSON for import or export", "")
+    button("Import Macro JSON", function()
+        return tds:ImportMacro(macroJsonInput.Text, macroInput.Text)
+    end)
+    button("Export Macro JSON", function()
+        local json, errorMessage = tds:ExportMacro(true)
+        if not json then return false, errorMessage end
+        macroJsonInput.Text = json
+        local clipboard = type(setclipboard) == "function" and setclipboard or type(toclipboard) == "function" and toclipboard
+        if clipboard then pcall(clipboard, json) end
+        return true
+    end)
+
+    section("Game and Recording Information")
+    local gameInfoLabel = label("Game information unavailable.", 90)
+    gameInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    local recordingLogLabel = label("No recording log.", 140)
+    recordingLogLabel.TextXAlignment = Enum.TextXAlignment.Left
+    recordingLogLabel.TextYAlignment = Enum.TextYAlignment.Top
+    button("Refresh Game Information", function()
+        local info = tds:GetGameInfo()
+        gameInfoLabel.Text = string.format(
+            "Map: %s\nMode: %s\nDifficulty: %s\nWave: %s\nTimer: %s",
+            tostring(info.Map), tostring(info.Mode), tostring(info.Difficulty),
+            tostring(info.Wave), tostring(info.WaveTime)
+        )
+        return true
+    end)
+    button("Refresh Recording Log", function()
+        local logs = tds:GetRecordingLog()
+        recordingLogLabel.Text = #logs > 0 and table.concat(logs, "\n") or "No recording log."
+        return true
+    end)
+
+    section("Statistics")
+    local statsLabel = label("No statistics loaded.", 170)
+    statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statsLabel.TextYAlignment = Enum.TextYAlignment.Top
+    local function refreshStats()
+        local data = tds:GetStats()
+        local rates = data.Rates or {}
+        statsLabel.Text = string.format(
+            "Rounds: %s\nCoins gained: %s\nGems gained: %s\nPlay seconds: %s\nCoins/hour: %.1f\nGems/hour: %.1f\nRetried: %s\nSkipped: %s\nMap rerolls: %s",
+            tostring(data.Rounds or 0), tostring(data.CoinsGained or 0), tostring(data.GemsGained or 0),
+            tostring(data.PlaySeconds or 0), tonumber(rates.CoinsPerHour) or 0, tonumber(rates.GemsPerHour) or 0,
+            tostring(data.ActionsRetried or 0), tostring(data.ActionsSkipped or 0), tostring(data.MapRerolls or 0)
+        )
+    end
+    button("Refresh Statistics", function()
+        local ok, result = tds:RefreshStats()
+        refreshStats()
+        return ok, result
+    end)
+    button("Reconcile Pending Round", function() return tds:ReconcilePendingRound(15) end)
+    button("Reset Statistics", function()
+        local ok, result = tds:ResetStats()
+        refreshStats()
+        return ok, result
+    end)
+
+    section("Webhooks")
+    local webhookInput = textInput("Discord webhook URL", tds:GetConfig().WebhookURL)
+    button("Apply Webhook URL", function() return tds:Configure({WebhookURL = webhookInput.Text}) end)
+    local webhookLogoInput = textInput("Webhook logo URL", tds:GetConfig().WebhookLogoURL)
+    button("Apply Webhook Logo", function() return tds:Configure({WebhookLogoURL = webhookLogoInput.Text}) end)
+    configToggle("Enable Webhooks", "WebhookEnabled")
+    local webhookRateInput = textInput("Webhook rate limit", tds:GetConfig().WebhookRateLimit)
+    button("Apply Webhook Rate Limit", function() return tds:Configure({WebhookRateLimit = tonumber(webhookRateInput.Text)}) end)
+    for _, eventName in ipairs({"Disconnect", "MatchResult", "LoadingScreenBroke", "LoadingRejoinFailed"}) do
+        toggle("Webhook " .. eventName, function()
+            return tds:GetConfig().WebhookEvents[eventName]
+        end, function(enabled)
+            return tds:Configure({WebhookEvents = {[eventName] = enabled}})
+        end)
+    end
+    button("Send Test Webhook", function() return tds:SendTestWebhook() end)
+
+    section("Settings and Diagnostics")
+    button("Save Settings", function() return tds:SaveSettings() end)
+    button("Load Settings", function()
+        local ok, result = tds:LoadSettings()
+        for _, refresh in ipairs(refreshControls) do refresh() end
+        return ok, result
+    end)
+    local telemetryLabel = label("No telemetry collected.", 90)
+    telemetryLabel.TextXAlignment = Enum.TextXAlignment.Left
+    button("Refresh Telemetry", function()
+        local data = tds:GetTelemetry()
+        telemetryLabel.Text = string.format(
+            "Actions: %s\nRetried: %s\nSkipped: %s\nFatal error: %s",
+            tostring(data.TotalActions or 0), tostring(data.Retried or 0),
+            tostring(data.Skipped or 0), tostring(data.FatalError or "None")
+        )
+        return true
+    end)
 
     local dragging = false
     local dragStart
@@ -247,6 +513,15 @@ function DefaultUI.mount(tds, options)
     table.insert(connections, tds:On("StatusChanged", show))
     table.insert(connections, tds:On("StateChanged", render))
     table.insert(connections, tds:On("TimelineChanged", function() render() end))
+    table.insert(connections, tds:On("RecordingLog", function(logs)
+        recordingLogLabel.Text = #logs > 0 and table.concat(logs, "\n") or "No recording log."
+    end))
+    table.insert(connections, tds:On("StatsChanged", function()
+        refreshStats()
+    end))
+    table.insert(connections, tds:On("ConfigChanged", function()
+        for _, refresh in ipairs(refreshControls) do pcall(refresh) end
+    end))
     table.insert(connections, tds:On("Error", function(problem)
         show("Runtime error: " .. tostring(problem.Message))
     end))
@@ -285,6 +560,8 @@ function DefaultUI.mount(tds, options)
         return nil, startResult
     end
     render(startResult)
+    refreshStats()
+    for _, refresh in ipairs(refreshControls) do pcall(refresh) end
     show("TDS Pro is ready.")
     return controller
 end
