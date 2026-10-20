@@ -1,5 +1,5 @@
 local Players = game:GetService("Players")
-local LIBRARY_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPOSITORY/main/TDSPRO.lua"
+local LIBRARY_URL = "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua"
 local source = game:HttpGet(LIBRARY_URL)
 local chunk, compileError = loadstring(source)
 assert(chunk, compileError)
