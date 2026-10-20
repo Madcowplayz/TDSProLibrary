@@ -1,10 +1,19 @@
 local Players = game:GetService("Players")
-local LIBRARY_URL = "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/refs/heads/main/TDSPro.lua"
-local source = game:HttpGet(LIBRARY_URL)
+local LIBRARY_URL = "https://raw.githubusercontent.com/Madcowplayz/TDSProLibrary/main/TDSPro.lua"
+local source = game:HttpGet(LIBRARY_URL .. "?cache=" .. tostring(os.time()))
 local chunk, compileError = loadstring(source)
 assert(chunk, compileError)
-local TDSPro = chunk()
-assert(type(TDSPro) == "table" and type(TDSPro.new) == "function", "Invalid TDS Pro library")
+local executed, result = pcall(chunk)
+assert(executed, "TDS Pro failed while loading: " .. tostring(result))
+local environment = type(getgenv) == "function" and getgenv() or _G
+local TDSPro = result
+if type(TDSPro) ~= "table" or type(TDSPro.new) ~= "function" then
+    TDSPro = environment and environment.TDSProLibrary
+end
+assert(
+    type(TDSPro) == "table" and type(TDSPro.new) == "function",
+    "Invalid TDS Pro library. Received " .. type(result) .. " from " .. tostring(#source) .. " source bytes."
+)
 local tds = TDSPro.new({MacroFolder = "TDSProMacros"})
 
 local connections = {}
