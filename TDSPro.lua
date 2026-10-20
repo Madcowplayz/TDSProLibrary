@@ -8117,4 +8117,10 @@ function TDSPro.new(options)
    return api
 end
 
+if type(getgenv) == "function" then
+   pcall(function() getgenv().TDSProLibrary = TDSPro end)
+elseif type(_G) == "table" then
+   pcall(function() _G.TDSProLibrary = TDSPro end)
+end
+
 return TDSPro
