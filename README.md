@@ -96,6 +96,24 @@ Commands return `true` with optional result data, or `false, errorMessage`. Gett
 
 `Start()` initializes event connections and background tracking. Recording, playback, and auto replay require separate calls. Settings such as `AutoSkip` or `SimplifyMapVisuals` take effect at `Start()` if configured beforehand, or immediately when enabled later. Some commands yield, including recording drain and inventory operations; invoke those from a UI callback/task that can yield. A successful `Play()` or `SetAutoReplay(true)` means the work started, not that the run completed. Observe events and `GetState()` for progress.
 
+## Included default UI
+
+Users who do not want to build a UI can load the included interface:
+
+```lua
+local base = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPOSITORY/main/"
+local TDSPro = loadstring(game:HttpGet(base .. "TDSPRO.lua"))()
+local DefaultUI = loadstring(game:HttpGet(base .. "default-ui.lua"))()
+
+local tds = TDSPro.new()
+local ui, errorMessage = DefaultUI.mount(tds)
+assert(ui, errorMessage)
+```
+
+`DefaultUI.mount` subscribes to the library, calls `Start()`, and returns a controller with `Destroy`, `SetVisible`, and `GetGui` methods. Closing the interface destroys the TDS Pro instance by default. Pass `{DestroyLibraryOnClose = false}` as the second argument if another part of the script owns the library lifecycle.
+
+The default interface and the core library are separate files. Custom UI authors only need `TDSPRO.lua`.
+
 ## Public API
 
 All instance methods use colon syntax (`tds:Method(...)`). Optional arguments are marked `?`.
